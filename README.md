@@ -118,14 +118,35 @@ For voice cloning with JSON, include `ref_audio_b64` (base64 of reference WAV).
 | `ref_text` | string | - | Transcript of ref audio (auto if blank) |
 | `instruct` | string | design | Voice description (e.g. "female, warm, slow") |
 
-### Voice Design Examples
+### Voice Design — Valid Attributes
 
-| instruct | Result |
-|----------|--------|
-| `female, young, high pitch, cheerful` | 👧 Young female |
-| `male, deep, calm, authoritative` | 👨‍💼 Professional male |
-| `female, warm, gentle, slow` | 👩‍🦳 Gentle female |
-| `male, whisper, mysterious` | 🤫 Whispering |
+| Category | Valid Values |
+|----------|--------------|
+| **Gender** | `female`, `male` |
+| **Age** | `child`, `teenager`, `young adult`, `middle-aged`, `elderly` |
+| **Pitch** | `very low pitch`, `low pitch`, `moderate pitch`, `high pitch`, `very high pitch` |
+| **Accent** | `american accent`, `australian accent`, `british accent`, `canadian accent`, `chinese accent`, `indian accent`, `japanese accent`, `korean accent`, `portuguese accent`, `russian accent` |
+| **Style** | `whisper` |
+
+Examples:
+```bash
+# Young female
+curl -X POST http://localhost:7860/api/generate \
+  -F "text=สวัสดีค่ะ" -F "mode=design" \
+  -F "instruct=female, young adult, high pitch"
+
+# Professional male
+curl -X POST http://localhost:7860/api/generate \
+  -F "text=ขอแนะนำสินค้าใหม่" -F "mode=design" \
+  -F "instruct=male, middle-aged, low pitch"
+
+# Whispering with accent
+curl -X POST http://localhost:7860/api/generate \
+  -F "text=ความลับอยู่ที่นี่" -F "mode=design" \
+  -F "instruct=male, whisper, british accent"
+```
+
+> ⚠️ Only attributes from the table above are accepted. Unsupported items (e.g. `cheerful`, `sad`, `deep`) are silently dropped with a server log warning. Chinese attributes (e.g. `女，青年，高音调`) are also supported.
 
 ## 🖥️ Web UI
 
