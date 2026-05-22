@@ -38,6 +38,36 @@ DEVICE = os.environ.get("OMNIVOICE_DEVICE", "cuda:0" if torch.cuda.is_available(
 OUTPUT_DIR = Path(os.environ.get("OMNIVOICE_OUTPUT_DIR", os.path.join(MODEL_PATH, "outputs")))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# ── Valid Voice Design Attributes ──────────
+VALID_INSTRUCTS_EN = {
+    "american accent", "australian accent", "british accent", "canadian accent",
+    "child", "chinese accent", "elderly", "female", "high pitch",
+    "indian accent", "japanese accent", "korean accent", "low pitch",
+    "male", "middle-aged", "moderate pitch", "portuguese accent",
+    "russian accent", "teenager", "very high pitch", "very low pitch",
+    "whisper", "young adult",
+}
+
+def validate_instruct(instruct: str) -> str:
+    """Filter unsupported items. Keeps Chinese, drops unknown English."""
+    items = [x.strip() for x in instruct.split(",")]
+    valid = []
+    unsupported = []
+    for item in items:
+        if not item:
+            continue
+        lowered = item.lower()
+        if lowered in VALID_INSTRUCTS_EN:
+            valid.append(item)
+        elif any(ord(c) > 127 for c in item):
+            valid.append(item)  # pass through Chinese
+        else:
+            unsupported.append(item)
+    cleaned = ", ".join(valid)
+    if unsupported:
+        print(f"[INSTRUCT] Dropped unsupported: {unsupported} → kept: {valid}")
+    return cleaned
+
 app = FastAPI(
     title="OmniVoice Thai API",
     description="Zero-shot Thai TTS — Voice Cloning · Voice Design · Auto Voice",
@@ -164,8 +194,8 @@ pre.code{font-size:.8em;color:var(--muted);overflow-x:auto}
 <label>📝 Text to speak</label>
 <textarea id="text-design" placeholder="พิมพ์ข้อความ...">สวัสดีค่ะ การออกแบบเสียงด้วยข้อความเป็นเทคโนโลยีที่น่าทึ่งมาก</textarea>
 <label>🎭 Voice attributes</label>
-<input type="text" id="instruct" placeholder="e.g. female, high pitch, warm, cheerful">
-<div class="examples"><span class="example-tag" onclick="setInstruct('female, young, high pitch, cheerful')">👧 สาวร่าเริง</span><span class="example-tag" onclick="setInstruct('male, deep, calm, authoritative')">👨‍💼 ทางการ</span><span class="example-tag" onclick="setInstruct('female, warm, gentle, slow')">👩‍🦳 อ่อนโยน</span><span class="example-tag" onclick="setInstruct('male, whisper, mysterious')">🤫 กระซิบ</span></div>
+<input type="text" id="instruct" placeholder="e.g. female, young adult, high pitch">
+<div class="examples"><span class="example-tag" onclick="setInstruct('female, young adult, high pitch')">👧 สาวร่าเริง</span><span class="example-tag" onclick="setInstruct('male, middle-aged, low pitch')">👨‍💼 ทางการ</span><span class="example-tag" onclick="setInstruct('female, elderly, moderate pitch')">👩‍🦳 อ่อนโยน</span><span class="example-tag" onclick="setInstruct('male, whisper, british accent')">🤫 กระซิบ</span></div>
 <div class="btn-row"><button class="btn-accent" onclick="generate('design')">🎨 Generate</button><button class="btn-outline" onclick="clearForm('design')">🔄 Clear</button></div>
 </div></div>
 
@@ -268,7 +298,7 @@ async def generate(
             if ref_text and ref_text.strip():
                 kwargs["ref_text"] = ref_text.strip()
         elif mode == "design" and instruct:
-            kwargs["instruct"] = instruct.strip()
+            kwargs["instruct"] = validate_instruct(instruct.strip())
 
         print(f"[GEN] mode={mode}, text_len={len(text)}")
 
@@ -321,7 +351,7 @@ async def generate_json(request: Request):
             if ref_text:
                 kwargs["ref_text"] = ref_text
         elif mode == "design" and instruct:
-            kwargs["instruct"] = instruct
+            kwargs["instruct"] = validate_instruct(instruct)
 
         with torch.inference_mode():
             audio = model.generate(**kwargs)
