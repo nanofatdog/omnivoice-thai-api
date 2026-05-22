@@ -376,5 +376,16 @@ async def generate_json(request: Request):
 if __name__ == "__main__":
     port = int(os.environ.get("OMNIVOICE_PORT", "7860"))
     host = os.environ.get("OMNIVOICE_HOST", "0.0.0.0")
-    print(f"[START] http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    max_retries = 10
+
+    for attempt in range(max_retries):
+        try:
+            print(f"[START] http://{host}:{port}")
+            uvicorn.run(app, host=host, port=port, log_level="info")
+            break
+        except OSError as e:
+            if "address already in use" in str(e).lower() and attempt < max_retries - 1:
+                port += 1
+                print(f"[RETRY] Port in use — trying {port}...")
+            else:
+                raise
