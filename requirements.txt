@@ -1,0 +1,8 @@
+torch>=2.0.0
+torchaudio>=2.0.0
+omnivoice>=0.1.0
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+soundfile>=0.12.0
+python-multipart>=0.0.5
+huggingface_hub>=0.20.0
