@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  omnivoice-thai:
+    build: .
+    container_name: omnivoice-thai
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - OMNIVOICE_MODEL_PATH=/app/model
+      - OMNIVOICE_PORT=7860
+      - OMNIVOICE_HOST=0.0.0.0
+    volumes:
+      # Cache model between rebuilds (optional — comment out if model is baked into image)
+      - model_data:/app/model
+      # Persist generated audio outputs
+      - outputs:/app/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+volumes:
+  model_data:
+  outputs:

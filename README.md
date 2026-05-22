@@ -53,6 +53,44 @@ cd ~/omnivoice-thai && python3 server.py
 OMNIVOICE_PORT=9000 OMNIVOICE_MODEL_DIR=/data/omnivoice curl -fsSL https://.../install.sh | bash
 ```
 
+## 🐳 Docker
+
+```bash
+# Clone repo
+git clone https://github.com/nanofatdog/omnivoice-thai-api.git
+cd omnivoice-thai-api
+
+# Build + start (model baked into image, ~6GB)
+docker compose up -d --build
+
+# Or use pre-baked model from HuggingFace volume
+docker compose up -d
+```
+
+First start downloads the model (~4.4GB) then loads it into VRAM — wait ~90s for `[READY]`.
+
+```bash
+# Check status
+docker compose logs -f
+
+# Health check
+curl http://localhost:7860/api/health
+```
+
+### Custom GPU
+
+Edit `docker-compose.yml` and change `device_ids: ['0']` to your GPU index:
+
+```yaml
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          device_ids: ['1']    # use GPU #1 instead
+          capabilities: [gpu]
+```
+
 ## 📡 API Reference
 
 ### `GET /api/health`

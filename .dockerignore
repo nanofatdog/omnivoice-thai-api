@@ -1,0 +1,9 @@
+.git
+.gitignore
+README.md
+*.log
+outputs/
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
