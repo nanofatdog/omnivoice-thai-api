@@ -4,6 +4,7 @@ FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV OMNIVOICE_MODEL_PATH=/app/model
+ENV OMNIVOICE_MODEL_DIR=/app/model
 ENV OMNIVOICE_PORT=7860
 ENV OMNIVOICE_HOST=0.0.0.0
 
@@ -23,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     wget \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python 3.12 ─────────────────────────────
@@ -33,32 +35,17 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 \
     && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 
-# ── PyTorch (CUDA 12.1) ─────────────────────
-RUN python3 -m pip install --no-cache-dir \
-    torch torchaudio --index-url https://download.pytorch.org/whl/cu121
-
-# ── OmniVoice + API deps ────────────────────
-RUN python3 -m pip install --no-cache-dir \
-    "huggingface_hub[cli]" \
-    omnivoice \
-    fastapi \
-    "uvicorn[standard]" \
-    soundfile \
-    python-multipart
-
-# ── Download model (~4.4GB) ─────────────────
-# Baked into image — comment out these 2 lines + uncomment volume mount in compose
-# if you prefer to mount model from host instead.
-RUN mkdir -p /app/model /app/outputs \
-    && hf download hotdogs/omnivoice-thai --local-dir /app/model
-
-# ── Copy server ─────────────────────────────
+# ── Copy installer + server ─────────────────
+WORKDIR /app
+COPY install.sh /app/install.sh
 COPY server.py /app/server.py
-RUN chmod +x /app/server.py
 
-# ── Start script ────────────────────────────
-RUN echo '#!/bin/bash\ncd /app\nexport OMNIVOICE_MODEL_PATH=/app/model\nexec python3 server.py' > /app/start.sh \
-    && chmod +x /app/start.sh
+# ── Run installer in Docker mode ────────────
+#    1) pip install torch + omnivoice + fastapi + ...
+#    2) hf download hotdogs/omnivoice-thai → /app/model (~4.4GB)
+#    3) skip system checks, skip server start
+RUN chmod +x /app/install.sh /app/server.py \
+    && bash /app/install.sh --docker
 
 # ── Expose ──────────────────────────────────
 EXPOSE 7860
@@ -68,5 +55,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -fsS http://localhost:7860/api/health || exit 1
 
 # ── Run ─────────────────────────────────────
-WORKDIR /app
 CMD ["python3", "server.py"]
