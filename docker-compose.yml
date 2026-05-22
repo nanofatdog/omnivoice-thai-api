@@ -12,10 +12,10 @@ services:
       - OMNIVOICE_PORT=7860
       - OMNIVOICE_HOST=0.0.0.0
     volumes:
-      # Cache model between rebuilds (optional — comment out if model is baked into image)
-      - model_data:/app/model
-      # Persist generated audio outputs
-      - outputs:/app/outputs
+      # Persist generated audio files
+      - ./outputs:/app/outputs
+      # (Optional) Mount external model to skip baking into image:
+      # - ~/omnivoice-thai:/app/model
     deploy:
       resources:
         reservations:
@@ -26,7 +26,10 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
-
-volumes:
-  model_data:
-  outputs:
+    # Wait for model to load before marking as healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7860/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3

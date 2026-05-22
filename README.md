@@ -55,31 +55,43 @@ OMNIVOICE_PORT=9000 OMNIVOICE_MODEL_DIR=/data/omnivoice curl -fsSL https://.../i
 
 ## 🐳 Docker
 
+### Quick start (model baked into image)
+
 ```bash
-# Clone repo
 git clone https://github.com/nanofatdog/omnivoice-thai-api.git
 cd omnivoice-thai-api
-
-# Build + start (model baked into image, ~6GB)
 docker compose up -d --build
-
-# Or use pre-baked model from HuggingFace volume
-docker compose up -d
 ```
 
-First start downloads the model (~4.4GB) then loads it into VRAM — wait ~90s for `[READY]`.
+Image ~6GB, first boot loads model into VRAM (~90s). Then:
 
 ```bash
-# Check status
+# Logs
 docker compose logs -f
 
-# Health check
+# Health
 curl http://localhost:7860/api/health
 ```
 
-### Custom GPU
+### Lightweight (model on host)
 
-Edit `docker-compose.yml` and change `device_ids: ['0']` to your GPU index:
+If you already have the model downloaded at `~/omnivoice-thai/`:
+
+```yaml
+# docker-compose.yml — comment out model download in Dockerfile, then:
+volumes:
+  - ~/omnivoice-thai:/app/model    # mount host model
+  - ./outputs:/app/outputs
+```
+
+```bash
+# In Dockerfile: comment out these 2 lines:
+# RUN mkdir -p /app/model ... && hf download ...
+```
+
+Then `docker compose up -d --build` — image ~1.5GB instead of ~6GB.
+
+### Custom GPU
 
 ```yaml
 deploy:
@@ -87,7 +99,7 @@ deploy:
     reservations:
       devices:
         - driver: nvidia
-          device_ids: ['1']    # use GPU #1 instead
+          device_ids: ['1']    # change GPU index
           capabilities: [gpu]
 ```
 

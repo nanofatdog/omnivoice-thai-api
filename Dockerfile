@@ -47,6 +47,8 @@ RUN python3 -m pip install --no-cache-dir \
     python-multipart
 
 # ── Download model (~4.4GB) ─────────────────
+# Baked into image — comment out these 2 lines + uncomment volume mount in compose
+# if you prefer to mount model from host instead.
 RUN mkdir -p /app/model /app/outputs \
     && hf download hotdogs/omnivoice-thai --local-dir /app/model
 
